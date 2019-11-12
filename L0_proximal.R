@@ -1,12 +1,22 @@
 # L0 constrained linear regression using proximal distance algorithm
 
-prox_L0 <- function(x, y, d, rho_0 = 1, rho_inc = 1.2, rho_max = 1000, iter_max = 10000, 
-                    k_rho = 100, tolerance = 1e-10, W = 1, accelerate = FALSE) {
-    N <- length(y)
-    p <- ncol(x)
-    xm <- colMeans(x)
+prox_L0 <- function(x, y, d, rho_0 = 1, rho_inc = 1.2, rho_max = 1000, k_rho = 100, W = 1,
+                    iter_max = 10000, tolerance = 1e-10, standardize = TRUE, accelerate = FALSE) {
+    N <- NROW(y)
+    p <- NCOL(x)
+    v <- rep(1/N, N)
     ym <- mean(y)
     y_cent <- y - ym
+    
+    xm <- colMeans(x)
+    x <- sweep(x, 2, xm, "-")
+    if (standardize == TRUE) { 
+        xs <- drop(sqrt(crossprod(v, x^2)))
+        x <- sweep(x, 2, xs, "/")
+    } else {
+        xs <- rep(1, p)
+    }
+    
     if (is.vector(W) && length(W) == 1) {
         W <- rep(1, p)
     } 
@@ -48,6 +58,7 @@ prox_L0 <- function(x, y, d, rho_0 = 1, rho_inc = 1.2, rho_max = 1000, iter_max 
         
         beta <- b_current
         beta[order(abs(b_current), decreasing = T)[(d+1):p]] <- 0
+        beta <- beta / xs
         b0 <- ym - drop(crossprod(xm, beta))
         
         if (dlb < tolerance && dldist < tolerance) {
@@ -93,6 +104,7 @@ prox_L0 <- function(x, y, d, rho_0 = 1, rho_inc = 1.2, rho_max = 1000, iter_max 
         
         beta <- b_current
         beta[order(abs(b_current), decreasing = T)[(d+1):p]] <- 0
+        beta <- beta / xs
         b0 <- ym - drop(crossprod(xm, beta))
         
         if (i == iter_max) {
